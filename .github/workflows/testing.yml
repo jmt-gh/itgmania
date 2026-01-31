@@ -1,4 +1,4 @@
-name: Nightly release
+name: testing release
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - beta
     paths-ignore:
       - '**.md'
-  # 1. Added manual trigger (The "Button")
   workflow_dispatch:
 
 jobs:
@@ -19,47 +18,23 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            name: Ubuntu (x86_64)
-            install: sudo apt-get update && sudo apt-get install -y libasound2-dev libgl-dev libglu1-mesa-dev libgtk-3-dev libjack-dev libmad0-dev libpulse-dev libudev-dev libxinerama-dev libx11-dev libxrandr-dev libxtst-dev nasm
-            release: |
-              cmake -B build -DCMAKE_BUILD_TYPE=Release -DWITH_FULL_RELEASE=Off -DWITH_NIGHTLY_RELEASE=On -DWITH_CLUB_FANTASTIC=Off
-              cmake --build build --target package
-            path: build/ITGmania-*-NIGHTLY-git-*-Linux-x86_64-no-songs.tar.gz
-
-          # 2. Optimized specifically for Raspberry Pi 5 / Trixie
           - os: ubuntu-24.04-arm
             name: Raspberry Pi 5 (ARM64)
-            # Removed 'nasm' (it's x86 only). Added 'libva-dev' and 'libjpeg-dev' for better FFmpeg/Asset support.
+            # Added 'yasm' to satisfy the CMake check and 'libva-dev' for hardware acceleration support
             install: |
               sudo apt-get update
-              sudo apt-get install -y libasound2-dev libgl-dev libglu1-mesa-dev libgtk-3-dev libjack-dev libmad0-dev libpulse-dev libudev-dev libxinerama-dev libx11-dev libxrandr-dev libxtst-dev libva-dev libjpeg-dev
+              sudo apt-get install -y libasound2-dev libgl-dev libglu1-mesa-dev libgtk-3-dev libjack-dev libmad0-dev libpulse-dev libudev-dev libxinerama-dev libx11-dev libxrandr-dev libxtst-dev yasm libva-dev libjpeg-dev
             release: |
-              # Added -mcpu=cortex-a76 to optimize for the Pi 5's specific processor
               cmake -B build -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_C_FLAGS="-mcpu=cortex-a76" \
                 -DCMAKE_CXX_FLAGS="-mcpu=cortex-a76" \
                 -DWITH_FULL_RELEASE=Off \
                 -DWITH_NIGHTLY_RELEASE=On \
                 -DWITH_CLUB_FANTASTIC=Off \
-                -DWITH_MINIMAID=Off
+                -DWITH_MINIMAID=Off \
+                -DWITH_FFMPEG_JOBS="$(nproc)"
               cmake --build build --target package
             path: build/ITGmania-*-NIGHTLY-git-*-Linux-aarch64-no-songs.tar.gz
-
-          - os: macos-latest
-            name: macOS (M1)
-            install: brew install nasm
-            release: |
-              cmake -B build -DCMAKE_BUILD_TYPE=Release -DWITH_FULL_RELEASE=Off -DWITH_NIGHTLY_RELEASE=On -DCMAKE_OSX_ARCHITECTURES=arm64 -DWITH_CLUB_FANTASTIC=Off
-              cmake --build build --target package
-            path: build/ITGmania-*-NIGHTLY-git-*-macOS-M1-no-songs.dmg
-
-          - os: windows-latest
-            name: Windows
-            release: |
-              cmake -B build -DWITH_FULL_RELEASE=Off -DWITH_NIGHTLY_RELEASE=On -DWITH_CLUB_FANTASTIC=Off
-              cmake --build build --config Release --target package
-            path: build/ITGmania-*-NIGHTLY-git-*-Windows-no-songs.exe
 
     name: ${{ matrix.name }}
     steps:
